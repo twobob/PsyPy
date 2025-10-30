@@ -43,7 +43,7 @@ def parse_requirement_line(line: str) -> Optional[Tuple[Optional[PackageRequirem
         return (None, None)
     if stripped.startswith("--"):
         return None
-    if any(prefix in stripped for prefix in ("http://", "https://", "git+")):
+    if stripped.startswith(("http://", "https://", "git+")):
         if "#egg=" in stripped:
             egg_name = stripped.split("#egg=")[1].split("&")[0].strip()
             return (_build_requirement(egg_name, [], stripped, stripped), None)

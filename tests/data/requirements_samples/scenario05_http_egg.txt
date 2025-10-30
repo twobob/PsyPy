@@ -1,0 +1,1 @@
+https://example.com/packages/custompkg-1.0.0.tar.gz#egg=custompkg
