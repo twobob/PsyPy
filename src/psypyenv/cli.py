@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
-from .config import load_cached_conda_envs, save_cached_conda_envs
+from .config import add_cached_conda_env, load_cached_conda_envs, save_cached_conda_envs
 from .environment import (
     find_conda_executable,
     infer_python_version,
@@ -39,6 +39,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--include-conda-envs",
         action="store_true",
         help="Inspect every conda environment discovered on the system.",
+    )
+    parser.add_argument(
+        "--refresh-conda-envs",
+        action="store_true",
+        help="Force a fresh scan of conda environments instead of reusing the cache.",
+    )
+    parser.add_argument(
+        "--register-conda-env",
+        action="append",
+        metavar="NAME=PYTHON",
+        help=(
+            "Persist an additional conda environment mapping in the cache. "
+            "The value should be provided as NAME=/path/to/python."
+        ),
     )
     parser.add_argument(
         "--conda",
@@ -78,10 +92,29 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     recommended_python = infer_python_version(requirements)
 
+    registered_envs: List[Tuple[str, str]] = []
+    if args.register_conda_env:
+        for entry in args.register_conda_env:
+            if "=" not in entry:
+                parser.error(
+                    "--register-conda-env values must be in NAME=/path/to/python format."
+                )
+            name, raw_path = entry.split("=", 1)
+            clean_name = name.strip()
+            clean_path = raw_path.strip()
+            if not clean_name or not clean_path:
+                parser.error(
+                    "--register-conda-env values must include a non-empty name and path."
+                )
+            add_cached_conda_env(clean_name, clean_path)
+            registered_envs.append((clean_name, clean_path))
+
     targets = _collect_targets(
         include_conda=args.include_conda_envs,
         conda_candidate=args.conda,
         explicit_pythons=args.python_executables,
+        refresh_cache=args.refresh_conda_envs,
+        preloaded_cached_envs=registered_envs,
     )
 
     if not targets:
@@ -112,6 +145,9 @@ def _collect_targets(
     include_conda: bool,
     conda_candidate: Optional[str],
     explicit_pythons: Optional[Sequence[str]],
+    *,
+    refresh_cache: bool = False,
+    preloaded_cached_envs: Optional[Sequence[Tuple[str, str]]] = None,
 ) -> List[Tuple[str, Path]]:
     targets: List[Tuple[str, Path]] = []
     seen: set[Path] = set()
@@ -134,7 +170,12 @@ def _collect_targets(
             add_target(f"python-{index}", candidate)
 
     if include_conda:
-        cached_entries = load_cached_conda_envs()
+        cached_entries: List[Tuple[str, str]]
+        if refresh_cache:
+            logging.info("Refreshing cached conda environments before scanning.")
+            cached_entries = []
+        else:
+            cached_entries = load_cached_conda_envs()
         cached_records: List[Tuple[str, str]] = []
         seen_cached_paths: set[Path] = set()
 
@@ -147,6 +188,9 @@ def _collect_targets(
                 return
             seen_cached_paths.add(resolved_python)
             cached_records.append((env_name, str(resolved_python)))
+
+        if preloaded_cached_envs:
+            cached_entries.extend(preloaded_cached_envs)
 
         if cached_entries:
             logging.info(
