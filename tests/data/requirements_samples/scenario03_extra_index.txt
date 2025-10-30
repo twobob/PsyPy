@@ -1,0 +1,2 @@
+--extra-index-url https://example.com/simple
+rich==13.3.2

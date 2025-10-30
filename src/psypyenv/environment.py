@@ -14,7 +14,7 @@ from packaging.markers import Marker
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
-from .config import load_conda_path, save_conda_path
+from .config import load_conda_path, load_conda_search_paths, save_conda_path
 from .models import EnvironmentReport, PackageRequirement, RequirementSpec
 
 
@@ -171,6 +171,15 @@ def find_conda_executable(candidate: Optional[str] = None) -> Optional[Path]:
     saved = load_conda_path()
     if saved:
         candidates.append(Path(saved))
+    for extra in load_conda_search_paths():
+        extra_path = Path(extra)
+        if extra_path.is_file():
+            candidates.append(extra_path)
+            continue
+        if extra_path.is_dir():
+            candidates.extend(_expand_conda_from_directory(extra_path))
+        else:
+            candidates.append(extra_path)
     env_var = os.environ.get("CONDA_EXE")
     if env_var:
         candidates.append(Path(env_var))
@@ -197,6 +206,21 @@ def find_conda_executable(candidate: Optional[str] = None) -> Optional[Path]:
             save_conda_path(str(normalized))
             return normalized
     return None
+
+
+def _expand_conda_from_directory(directory: Path) -> List[Path]:
+    names = ["conda"]
+    if sys.platform == "win32":
+        names = ["conda.exe", "conda.bat", "conda"]
+        subdirectories = [Path(""), Path("Scripts"), Path("condabin")]
+    else:
+        subdirectories = [Path(""), Path("bin"), Path("condabin")]
+    candidates: List[Path] = []
+    for subdirectory in subdirectories:
+        for name in names:
+            candidate = directory / subdirectory / name
+            candidates.append(candidate)
+    return candidates
 
 
 def _validate_conda(path: Path) -> bool:

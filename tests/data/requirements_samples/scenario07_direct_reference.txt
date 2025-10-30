@@ -1,0 +1,1 @@
+samplepkg @ https://files.example.com/samplepkg-1.0.0-py3-none-any.whl

@@ -1,0 +1,2 @@
+git+https://example.com/without-egg.git
+--find-links https://example.com/simple
