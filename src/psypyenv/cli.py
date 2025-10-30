@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
+from .config import load_cached_conda_envs, save_cached_conda_envs
 from .environment import (
     find_conda_executable,
     infer_python_version,
@@ -133,18 +134,67 @@ def _collect_targets(
             add_target(f"python-{index}", candidate)
 
     if include_conda:
+        cached_entries = load_cached_conda_envs()
+        cached_records: List[Tuple[str, str]] = []
+        seen_cached_paths: set[Path] = set()
+
+        def record_cache(env_name: str, python_path: Path) -> None:
+            try:
+                resolved_python = python_path.resolve()
+            except FileNotFoundError:
+                return
+            if resolved_python in seen_cached_paths:
+                return
+            seen_cached_paths.add(resolved_python)
+            cached_records.append((env_name, str(resolved_python)))
+
+        if cached_entries:
+            logging.info(
+                "Reusing %s cached conda environment%s.",
+                len(cached_entries),
+                "" if len(cached_entries) == 1 else "s",
+            )
+        for index, (cached_name, cached_path) in enumerate(cached_entries, start=1):
+            python_path = Path(cached_path)
+            if not python_path.exists():
+                continue
+            logging.info(
+                "Cached conda environment %s/%s: %s",
+                index,
+                len(cached_entries),
+                python_path,
+            )
+            add_target(cached_name, python_path)
+            record_cache(cached_name, python_path)
+
         conda_path = find_conda_executable(conda_candidate)
         if not conda_path:
             logging.warning("Conda executable not found.")
+            save_cached_conda_envs(cached_records)
             return targets
         environments = list_conda_environments(conda_path)
-        for env_path in environments:
+        total_envs = len(environments)
+        if total_envs:
+            logging.info(
+                "Scanning %s conda environment%s for Python interpreters...",
+                total_envs,
+                "" if total_envs == 1 else "s",
+            )
+        for index, env_path in enumerate(environments, start=1):
             python_path = resolve_python_executable(env_path)
             if not python_path:
                 logging.debug("Python executable not found for env %s", env_path)
                 continue
+            logging.info(
+                "Scanning conda environment %s/%s: %s",
+                index,
+                total_envs or 1,
+                env_path,
+            )
             name = env_path.name or "base"
             add_target(name, python_path)
+            record_cache(name, python_path)
+        save_cached_conda_envs(cached_records)
 
     return targets
 
