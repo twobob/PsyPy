@@ -236,6 +236,14 @@ def _validate_conda(path: Path) -> bool:
         )
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
         return False
+    except OSError:
+        if sys.platform == "win32":
+            try:
+                content = path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                return False
+            return "conda" in content.lower()
+        return False
     return "conda" in result.stdout.lower() or "conda" in result.stderr.lower()
 
 
