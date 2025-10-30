@@ -48,17 +48,17 @@ def load_conda_search_paths() -> List[str]:
 
 
 def save_conda_search_paths(paths: Iterable[str]) -> None:
-    normalized = []
+    normalised = []
     for path in paths:
         if not path:
             continue
         stripped = str(path).strip()
         if not stripped:
             continue
-        normalized.append(stripped)
+        normalised.append(stripped)
     config = _load_or_create()
-    if normalized:
-        config[CONFIG_SECTION][CONFIG_EXTRA_PATHS_KEY] = os.pathsep.join(normalized)
+    if normalised:
+        config[CONFIG_SECTION][CONFIG_EXTRA_PATHS_KEY] = os.pathsep.join(normalised)
     elif CONFIG_EXTRA_PATHS_KEY in config[CONFIG_SECTION]:
         del config[CONFIG_SECTION][CONFIG_EXTRA_PATHS_KEY]
     _write_config(config)
@@ -66,10 +66,10 @@ def save_conda_search_paths(paths: Iterable[str]) -> None:
 
 def add_conda_search_path(path: str) -> None:
     current = load_conda_search_paths()
-    normalized = str(path).strip()
-    if not normalized or normalized in current:
+    normalised = str(path).strip()
+    if not normalised or normalised in current:
         return
-    current.append(normalized)
+    current.append(normalised)
     save_conda_search_paths(current)
 
 
@@ -104,7 +104,7 @@ def load_cached_conda_envs() -> List[Tuple[str, str]]:
 
 
 def save_cached_conda_envs(items: Sequence[Tuple[str, str]]) -> None:
-    normalized: List[dict] = []
+    normalised: List[dict] = []
     seen: set[Tuple[str, str]] = set()
     for name, path in items:
         clean_name = str(name).strip()
@@ -115,13 +115,23 @@ def save_cached_conda_envs(items: Sequence[Tuple[str, str]]) -> None:
         if key in seen:
             continue
         seen.add(key)
-        normalized.append({"name": clean_name, "path": clean_path})
+        normalised.append({"name": clean_name, "path": clean_path})
     config = _load_or_create()
-    if normalized:
-        config[CONFIG_SECTION][CONFIG_CACHED_ENVS_KEY] = json.dumps(normalized)
+    if normalised:
+        config[CONFIG_SECTION][CONFIG_CACHED_ENVS_KEY] = json.dumps(normalised)
     elif CONFIG_CACHED_ENVS_KEY in config[CONFIG_SECTION]:
         del config[CONFIG_SECTION][CONFIG_CACHED_ENVS_KEY]
     _write_config(config)
+
+
+def add_cached_conda_env(name: str, path: str) -> None:
+    current = load_cached_conda_envs()
+    entry = (str(name).strip(), str(path).strip())
+    if not entry[0] or not entry[1]:
+        return
+    if entry not in current:
+        current.append(entry)
+        save_cached_conda_envs(current)
 
 
 def _load_or_create() -> configparser.ConfigParser:

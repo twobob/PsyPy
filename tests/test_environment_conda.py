@@ -4,8 +4,11 @@ import logging
 import sys
 from pathlib import Path
 
+import pytest
+
 from psypyenv import cli, config, environment
 from psypyenv.models import EnvironmentReport
+from psypyenv.requirements import parse_requirement_text
 
 
 def test_find_conda_executable_returns_none_when_absent(monkeypatch) -> None:
@@ -69,6 +72,12 @@ def test_cli_include_conda_envs_reports_and_caches(tmp_path, monkeypatch, capsys
         environments.append(env_dir)
         python_paths[env_dir] = python_path
 
+    manual_env = tmp_path / "manual" / "custom"
+    manual_env.mkdir(parents=True)
+    manual_python = manual_env / "python"
+    manual_python.write_text("#!/bin/sh\n")
+    manual_python.chmod(0o755)
+
     monkeypatch.setattr(cli, "list_conda_environments", lambda _conda: environments)
     monkeypatch.setattr(cli, "resolve_python_executable", lambda env: python_paths.get(env))
 
@@ -95,6 +104,8 @@ def test_cli_include_conda_envs_reports_and_caches(tmp_path, monkeypatch, capsys
             "--show-paths",
             "--log-level",
             "INFO",
+            "--register-conda-env",
+            f"gamma={manual_python}",
         ]
     )
     assert exit_code == 0
@@ -110,6 +121,8 @@ def test_cli_include_conda_envs_reports_and_caches(tmp_path, monkeypatch, capsys
 
     assert any("Scanning conda environment 1/2" in message for message in caplog.messages)
 
+    assert any("gamma" in name for name, _ in cached_envs)
+
     caplog.clear()
     exit_code = cli.main(
         [
@@ -119,8 +132,53 @@ def test_cli_include_conda_envs_reports_and_caches(tmp_path, monkeypatch, capsys
             "--show-paths",
             "--log-level",
             "INFO",
+            "--refresh-conda-envs",
         ]
     )
     assert exit_code == 0
     capsys.readouterr()
-    assert any("Reusing 2 cached conda environments." in message for message in caplog.messages)
+    assert any("Refreshing cached conda environments before scanning." in message for message in caplog.messages)
+    assert all("Reusing" not in message for message in caplog.messages)
+
+    refreshed_cache = config.load_cached_conda_envs()
+    assert expected_alpha in refreshed_cache
+    assert expected_beta in refreshed_cache
+    assert all(name != "gamma" for name, _ in refreshed_cache)
+
+
+def test_inspect_environment_uses_real_python(discovered_environments) -> None:
+    requirements = parse_requirement_text(
+        [
+            "pip>=9",
+            "psypyenv-non-existent-demo-package==0.0.1",
+        ]
+    )
+
+    for env_name, python_path in discovered_environments:
+        report = environment.inspect_environment(env_name, python_path, requirements)
+
+        assert report.total_requirements == 2
+        assert "pip" in report.matching
+        assert "psypyenv-non-existent-demo-package" in report.missing
+        assert report.compatibility == pytest.approx(50.0, abs=0.1)
+        assert report.python_version is not None
+
+
+def test_cli_main_reports_discovered_environments(discovered_environments, capsys) -> None:
+    sample_path = Path(__file__).parent / "data" / "requirements_samples" / "scenario09_with_extras.txt"
+
+    exit_code = cli.main([
+        "--requirements",
+        str(sample_path),
+        "--include-conda-envs",
+        "--refresh-conda-envs",
+    ])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    output = captured.out
+    assert "Environment compatibility summary" in output
+    for env_name, _ in discovered_environments:
+        assert env_name in output
+    assert output.count("Compatibility:") == len(discovered_environments)
+    assert output.lower().count("missing: django") == len(discovered_environments)

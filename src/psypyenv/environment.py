@@ -21,7 +21,7 @@ from .models import EnvironmentReport, PackageRequirement, RequirementSpec
 LOGGER = logging.getLogger(__name__)
 
 
-def normalize_name(name: str) -> str:
+def normalise_name(name: str) -> str:
     return name.lower().replace("_", "-")
 
 
@@ -39,7 +39,7 @@ def get_installed_packages(python_executable: Path, timeout: int = 60) -> Dict[s
     else:
         try:
             data = json.loads(result.stdout)
-            return {normalize_name(pkg["name"]): pkg["version"] for pkg in data}
+            return {normalise_name(pkg["name"]): pkg["version"] for pkg in data}
         except json.JSONDecodeError as exc:
             LOGGER.debug("pip list JSON parse failed for %s: %s", python_executable, exc)
     try:
@@ -58,7 +58,7 @@ def get_installed_packages(python_executable: Path, timeout: int = 60) -> Dict[s
         if "==" not in line:
             continue
         name, version = line.split("==", 1)
-        packages[normalize_name(name.strip())] = version.strip()
+        packages[normalise_name(name.strip())] = version.strip()
     return packages
 
 
@@ -110,7 +110,7 @@ def check_version(installed: str, specs: Sequence[RequirementSpec], package: str
         LOGGER.warning("Invalid installed version %s for %s", installed, package)
         return False
     requirement_specs = list(specs)
-    if normalize_name(package) == "python":
+    if normalise_name(package) == "python":
         adjusted: List[RequirementSpec] = []
         for spec in requirement_specs:
             if spec.operator == "==" and len(spec.version.split(".")) == 2:
@@ -142,7 +142,7 @@ def inspect_environment(
         if not evaluate_marker(requirement.marker, python_version):
             continue
         applicable += 1
-        key = normalize_name(requirement.name)
+        key = normalise_name(requirement.name)
         installed = packages.get(key)
         if installed is None:
             missing.append(requirement.name)
@@ -198,13 +198,13 @@ def find_conda_executable(candidate: Optional[str] = None) -> Optional[Path]:
     candidates.extend(default_candidates)
     seen: set[Path] = set()
     for path_candidate in candidates:
-        normalized = path_candidate.resolve() if path_candidate.exists() else path_candidate
-        if normalized in seen:
+        normalised = path_candidate.resolve() if path_candidate.exists() else path_candidate
+        if normalised in seen:
             continue
-        seen.add(normalized)
-        if _validate_conda(normalized):
-            save_conda_path(str(normalized))
-            return normalized
+        seen.add(normalised)
+        if _validate_conda(normalised):
+            save_conda_path(str(normalised))
+            return normalised
     return None
 
 
@@ -308,7 +308,7 @@ def resolve_python_executable(env_path: Path) -> Optional[Path]:
 def infer_python_version(requirements: Sequence[PackageRequirement]) -> Optional[str]:
     python_specs: List[str] = []
     for requirement in requirements:
-        if normalize_name(requirement.name) != "python":
+        if normalise_name(requirement.name) != "python":
             continue
         for spec in requirement.specs:
             python_specs.append(f"{spec.operator}{spec.version}")
