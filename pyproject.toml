@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "psypy-env-checker"
+name = "psypyenv"
 version = "0.1.0"
 description = "Cross-platform environment compatibility checker for Python projects."
 readme = "README.md"
@@ -29,11 +29,11 @@ classifiers = [
 keywords = ["environment", "compatibility", "conda", "pip"]
 
 [project.urls]
-Homepage = "https://github.com/example/psypy"
-Repository = "https://github.com/example/psypy"
+Homepage = "https://github.com/example/psypyenv"
+Repository = "https://github.com/example/psypyenv"
 
 [project.scripts]
-psypy-env-check = "psypy.cli:main"
+psypyenv = "psypyenv.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

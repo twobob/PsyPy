@@ -7,7 +7,7 @@ from typing import Optional
 from platformdirs import user_config_path
 
 
-APP_NAME = "psypy"
+APP_NAME = "psypyenv"
 CONFIG_SECTION = "conda"
 CONFIG_KEY = "path"
 
