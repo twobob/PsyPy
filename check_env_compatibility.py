@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from psypy.cli import main
+from psypyenv.cli import main
 
 
 if __name__ == "__main__":

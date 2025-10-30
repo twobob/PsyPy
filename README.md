@@ -1,13 +1,13 @@
-# PsyPy Environment Checker
+# psypyenv
 
-PsyPy is a utility that inspects Python environments and reports how well they satisfy a given `requirements.txt` file. The tool is designed for packaging on PyPI and can be used as a library or as a command-line application.
+psypyenv is a utility that inspects Python environments and reports how well they satisfy a given `requirements.txt` file. The tool is designed for packaging on PyPI and can be used as a library or as a command-line application.
 
 ## Installation
 
 Once published, install the package from PyPI:
 
 ```bash
-pip install psypy-env-checker
+pip install psypyenv
 ```
 
 For local development use the source tree:
@@ -18,10 +18,10 @@ pip install -e .
 
 ## Command-line usage
 
-The `psypy-env-check` command analyses one or more Python environments. It reads the supplied requirements file, checks each environment, and prints a compatibility summary. The current interpreter is always inspected; additional interpreters or conda environments are optional.
+The `psypyenv` command analyses one or more Python environments. It reads the supplied requirements file, checks each environment, and prints a compatibility summary. The current interpreter is always inspected; additional interpreters or conda environments are optional.
 
 ```bash
-psypy-env-check --requirements path/to/requirements.txt --include-conda-envs
+psypyenv --requirements path/to/requirements.txt --include-conda-envs
 ```
 
 Key options:
@@ -53,14 +53,14 @@ The package exposes parsing and inspection helpers for integration in other tool
 import sys
 from pathlib import Path
 
-from psypy import inspect_environment, parse_requirements
+from psypyenv import inspect_environment, parse_requirements
 
 requirements, _ = parse_requirements(Path("requirements.txt"))
 report = inspect_environment("current", Path(sys.executable), requirements)
 print(report.compatibility)
 ```
 
-Use `psypy.reporting.format_reports` to render human-readable summaries or `psypy.reporting.reports_to_json` to produce JSON for automation.
+Use `psypyenv.reporting.format_reports` to render human-readable summaries or `psypyenv.reporting.reports_to_json` to produce JSON for automation.
 
 ## Configuration and state
 
