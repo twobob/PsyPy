@@ -8,8 +8,8 @@ version = "0.1.0"
 description = "Cross-platform environment compatibility checker for Python projects."
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "Proprietary"}
-authors = [{name = "PsyPy Maintainers"}]
+license = "MIT"
+authors = [{name = "twobob"}]
 dependencies = [
     "packaging>=23.0",
     "platformdirs>=3.0",
@@ -24,13 +24,13 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: Other/Proprietary License",
 ]
 keywords = ["environment", "compatibility", "conda", "pip"]
 
 [project.urls]
-Homepage = "https://github.com/example/psypyenv"
-Repository = "https://github.com/example/psypyenv"
+Homepage = "https://github.com/twobob/psypyenv"
+Repository = "https://github.com/twobob/psypyenv"
+Issues = "https://github.com/twobob/psypyenv/issues"
 
 [project.scripts]
 psypyenv = "psypyenv.cli:main"
